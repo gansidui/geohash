@@ -116,3 +116,56 @@ func GetNeighbors(latitude, longitude float64, precision int) []string {
 
 	return geohashs
 }
+
+// 计算该点（latitude, longitude）在精度precision下指定层数的邻居
+// 返回这些区域的geohash二维数组
+func LoopNeighbors(latitude, longitude float64, precision, loop int) [][]string {
+	geohashs := make([][]string, loop+1)
+
+	// 本身
+	geohash, b := Encode(latitude, longitude, precision)
+	geohashs[0] = []string{geohash}
+
+	centerlat := (b.MinLat + b.MaxLat) / 2
+	centerlog := (b.MinLng + b.MaxLng) / 2
+	width := b.Width()
+	height := b.Height()
+
+	for i := 1; i <= loop; i++ {
+		side := 2 * i
+
+		group := make([]string, 0)
+
+		//上
+		latup := centerlat + height*float64(i)
+		for k := 0; k < side; k++ {
+			log := centerlog + width*float64(k-i+1)
+			hash, _ := Encode(latup, log, precision)
+			group = append(group, hash)
+		}
+		//右
+		logright := centerlog + width*float64(i)
+		for k := 0; k < side; k++ {
+			lat := centerlat - height*float64(k-i+1)
+			hash, _ := Encode(lat, logright, precision)
+			group = append(group, hash)
+		}
+		//下
+		latdown := centerlat - height*float64(i)
+		for k := 0; k < side; k++ {
+			log := centerlog - width*float64(k-i+1)
+			hash, _ := Encode(latdown, log, precision)
+			group = append(group, hash)
+		}
+		//左
+		logleft := centerlog - width*float64(i)
+		for k := 0; k < side; k++ {
+			lat := centerlat + height*float64(k-i+1)
+			hash, _ := Encode(lat, logleft, precision)
+			group = append(group, hash)
+		}
+
+		geohashs[i] = group
+	}
+	return geohashs
+}
